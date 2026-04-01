@@ -102,13 +102,34 @@ export class CallControl extends EventEmitter implements CallControlState {
     return this.state.spotlight;
   }
 
+  public get pushToTalkKeyActive(): boolean {
+    return this.pushToTalk && this.pushToTalkKeyPressed;
+  }
+
+  public get pushToMuteKeyActive(): boolean {
+    return this.pushToMute && this.pushToMuteKeyPressed;
+  }
+
   private get effectiveAudioEnabled(): boolean {
     if (this.pushToTalk) {
-      return this.microphone && (!this.pushToTalk || this.pushToTalkKeyPressed);
+      return this.microphone && this.pushToTalkKeyPressed;
     } else if (this.pushToMute) {
-      return this.microphone && (!this.pushToMute || !this.pushToMuteKeyPressed);
+      return this.microphone && !this.pushToMuteKeyPressed;
     }
     return this.microphone;
+  }
+
+  private updateState() {
+    this.state = new CallControlState(
+      this.microphone,
+      this.video,
+      this.sound,
+      this.screenshare,
+      this.spotlight,
+      this.pushToTalkKeyActive,
+      this.pushToMuteKeyActive
+    );
+    this.emitStateUpdate();
   }
 
   public setPushToTalkKeyPressed(enabled: boolean) {
@@ -119,6 +140,7 @@ export class CallControl extends EventEmitter implements CallControlState {
         video_enabled: this.video,
       });
     }
+    this.updateState();
   }
 
   public setPushToTalk(enabled: boolean) {
@@ -127,6 +149,7 @@ export class CallControl extends EventEmitter implements CallControlState {
       audio_enabled: this.effectiveAudioEnabled,
       video_enabled: this.video,
     });
+    this.updateState();
   }
 
   public setPushToMuteKeyPressed(enabled: boolean) {
@@ -137,6 +160,7 @@ export class CallControl extends EventEmitter implements CallControlState {
         video_enabled: this.video,
       });
     }
+    this.updateState();
   }
   public setPushToMute(enabled: boolean) {
     this.pushToMute = enabled;
@@ -144,6 +168,7 @@ export class CallControl extends EventEmitter implements CallControlState {
       audio_enabled: this.effectiveAudioEnabled,
       video_enabled: this.video,
     });
+    this.updateState();
   }
 
   public async applyState() {
@@ -216,7 +241,9 @@ export class CallControl extends EventEmitter implements CallControlState {
       data.video_enabled ?? this.video,
       this.sound,
       this.screenshare,
-      this.spotlight
+      this.spotlight,
+      this.pushToTalkKeyActive,
+      this.pushToMuteKeyActive
     );
 
     this.state = state;
@@ -250,7 +277,9 @@ export class CallControl extends EventEmitter implements CallControlState {
       this.video,
       this.sound,
       screenshare,
-      spotlight
+      spotlight,
+      this.pushToTalkKeyActive,
+      this.pushToMuteKeyActive
     );
     this.emitStateUpdate();
   }
@@ -261,7 +290,9 @@ export class CallControl extends EventEmitter implements CallControlState {
       this.video,
       this.sound,
       this.screenshare,
-      this.spotlight
+      this.spotlight,
+      this.pushToTalkKeyActive,
+      this.pushToMuteKeyActive
     );
 
     this.emitStateUpdate();
@@ -290,7 +321,9 @@ export class CallControl extends EventEmitter implements CallControlState {
       this.video,
       sound,
       this.screenshare,
-      this.spotlight
+      this.spotlight,
+      this.pushToTalkKeyActive,
+      this.pushToMuteKeyActive
     );
     this.state = state;
     this.emitStateUpdate();

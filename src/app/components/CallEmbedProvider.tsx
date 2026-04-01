@@ -53,6 +53,10 @@ export function CallEmbedProvider({ children }: CallEmbedProviderProps) {
   const [pushToMuteKey] = useSetting(settingsAtom, 'pushToMuteKey');
   const [notificationSound] = useSetting(settingsAtom, 'isNotificationSounds');
 
+  const mobile = screenSize === ScreenSize.Mobile;
+  const effectivePushToTalk = !mobile && pushToTalk;
+  const effectivePushToMute = !mobile && pushToMute;
+
   const pushKeyPressedRef = useRef({ PTT: false, PTM: false });
   const enableAudioRef = useRef<HTMLAudioElement>(null);
   const disableAudioRef = useRef<HTMLAudioElement>(null);
@@ -60,8 +64,8 @@ export function CallEmbedProvider({ children }: CallEmbedProviderProps) {
   useEffect(() => {
     if (!callEmbed) return;
 
-    callEmbed.control.setPushToTalk(pushToTalk);
-    callEmbed.control.setPushToMute(pushToMute);
+    callEmbed.control.setPushToTalk(effectivePushToTalk);
+    callEmbed.control.setPushToMute(effectivePushToMute);
 
     const setKeyPressed = (key: 'PTT' | 'PTM', pressed: boolean) => {
       if (pushKeyPressedRef.current[key] === pressed) return;
@@ -73,20 +77,20 @@ export function CallEmbedProvider({ children }: CallEmbedProviderProps) {
       }
       pushKeyPressedRef.current[key] = pressed;
 
-      if (notificationSound) {
+      if (notificationSound && callEmbed.control.microphone) {
         const audio = pressed ? enableAudioRef.current : disableAudioRef.current;
         if (audio) {
-          audio.volume = 0.12;
+          audio.volume = 0.8;
           audio.currentTime = 0;
           audio.play().catch(() => undefined);
         }
       }
     };
 
-    if (!pushToTalk) {
+    if (!effectivePushToTalk) {
       setKeyPressed('PTT', false);
     }
-    if (!pushToMute) {
+    if (!effectivePushToMute) {
       setKeyPressed('PTM', false);
     }
 
@@ -114,13 +118,13 @@ export function CallEmbedProvider({ children }: CallEmbedProviderProps) {
     const handleKeyDown = (evt: KeyboardEvent) => {
       if (isTyping(evt)) return;
 
-      if (pushToTalk && evt.code === pushToTalkKey) {
+      if (effectivePushToTalk && evt.code === pushToTalkKey) {
         if (isKeyTriggeringUIevents(evt.code)) {
           evt.preventDefault();
         }
         setKeyPressed('PTT', true);
       }
-      if (pushToMute && evt.code === pushToMuteKey) {
+      if (effectivePushToMute && evt.code === pushToMuteKey) {
         if (isKeyTriggeringUIevents(evt.code)) {
           evt.preventDefault();
         }
@@ -129,13 +133,13 @@ export function CallEmbedProvider({ children }: CallEmbedProviderProps) {
     };
 
     const handleKeyUp = (evt: KeyboardEvent) => {
-      if (pushToTalk && evt.code === pushToTalkKey) {
+      if (effectivePushToTalk && evt.code === pushToTalkKey) {
         if (isKeyTriggeringUIevents(evt.code)) {
           evt.preventDefault();
         }
         setKeyPressed('PTT', false);
       }
-      if (pushToMute && evt.code === pushToMuteKey) {
+      if (effectivePushToMute && evt.code === pushToMuteKey) {
         if (isKeyTriggeringUIevents(evt.code)) {
           evt.preventDefault();
         }
@@ -164,7 +168,14 @@ export function CallEmbedProvider({ children }: CallEmbedProviderProps) {
       window.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('blur', handleBlur);
     };
-  }, [callEmbed, pushToTalk, pushToTalkKey, pushToMute, pushToMuteKey, notificationSound]);
+  }, [
+    callEmbed,
+    effectivePushToTalk,
+    pushToTalkKey,
+    effectivePushToMute,
+    pushToMuteKey,
+    notificationSound,
+  ]);
 
   return (
     <CallEmbedContextProvider value={callEmbed}>

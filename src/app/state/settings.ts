@@ -80,9 +80,9 @@ const defaultSettings: Settings = {
   legacyUsernameColor: false,
 
   pushToTalk: false,
-  pushToTalkKey: 'Shift (L)',
+  pushToTalkKey: 'ShiftLeft',
   pushToMute: false,
-  pushToMuteKey: 'Shift (L)',
+  pushToMuteKey: 'ShiftLeft',
 
   showNotifications: true,
   isNotificationSounds: true,

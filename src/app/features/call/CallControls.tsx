@@ -46,7 +46,15 @@ export function CallControls({ callEmbed }: CallControlsProps) {
     useCallback(() => controlRef.current, [])
   );
 
-  const { microphone, video, sound, screenshare, spotlight } = useCallControlState(
+  const {
+    microphone,
+    video,
+    sound,
+    screenshare,
+    spotlight,
+    pushToTalkKeyActive,
+    pushToMuteKeyActive,
+  } = useCallControlState(
     callEmbed.control
   );
 
@@ -96,6 +104,8 @@ export function CallControls({ callEmbed }: CallControlsProps) {
           <Box shrink="No" alignItems="Inherit" justifyContent="Inherit" gap="200">
             <MicrophoneButton
               enabled={microphone}
+              pushToTalkKeyActive={pushToTalkKeyActive}
+              pushToMuteKeyActive={pushToMuteKeyActive}
               onToggle={() => callEmbed.control.toggleMicrophone()}
             />
             <SoundButton enabled={sound} onToggle={() => callEmbed.control.toggleSound()} />

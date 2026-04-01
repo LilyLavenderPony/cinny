@@ -12,9 +12,23 @@ export function ControlDivider() {
 
 type MicrophoneButtonProps = {
   enabled: boolean;
+  pushToTalkKeyActive?: boolean;
+  pushToMuteKeyActive?: boolean;
   onToggle: () => void;
 };
-export function MicrophoneButton({ enabled, onToggle }: MicrophoneButtonProps) {
+export function MicrophoneButton({
+  enabled,
+  pushToTalkKeyActive,
+  pushToMuteKeyActive,
+  onToggle,
+}: MicrophoneButtonProps) {
+  const className =
+    enabled && pushToTalkKeyActive
+    ? css.MicrophoneButtonPushToTalkActive
+    : enabled && pushToMuteKeyActive
+    ? css.MicrophoneButtonPushToMuteActive
+    : undefined;
+
   return (
     <TooltipProvider
       position="Top"
@@ -27,6 +41,7 @@ export function MicrophoneButton({ enabled, onToggle }: MicrophoneButtonProps) {
     >
       {(anchorRef) => (
         <IconButton
+          className={className}
           ref={anchorRef}
           variant={enabled ? 'Surface' : 'Warning'}
           fill="Soft"

@@ -49,6 +49,7 @@ import { getPushKeyLabel, stopPropagation } from '../../../utils/keyboard';
 import { useMessageLayoutItems } from '../../../hooks/useMessageLayout';
 import { useMessageSpacingItems } from '../../../hooks/useMessageSpacing';
 import { useDateFormatItems } from '../../../hooks/useDateFormat';
+import { ScreenSize, useScreenSize } from '../../../hooks/useScreenSize';
 import { SequenceCardStyle } from '../styles.css';
 
 type ThemeSelectorProps = {
@@ -1108,6 +1109,7 @@ type GeneralProps = {
   requestClose: () => void;
 };
 export function General({ requestClose }: GeneralProps) {
+  const mobile = useScreenSize() === ScreenSize.Mobile;
   return (
     <Page>
       <PageHeader outlined={false}>
@@ -1132,7 +1134,7 @@ export function General({ requestClose }: GeneralProps) {
               <DateAndTime />
               <Editor />
               <Messages />
-              <Voice />
+              {!mobile && <Voice />}
             </Box>
           </PageContent>
         </Scroll>
