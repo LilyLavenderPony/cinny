@@ -40,6 +40,11 @@ export interface Settings {
   showHiddenEvents: boolean;
   legacyUsernameColor: boolean;
 
+  pushToTalk: boolean;
+  pushToTalkKey: string;
+  pushToMute: boolean;
+  pushToMuteKey: string;
+
   showNotifications: boolean;
   isNotificationSounds: boolean;
 
@@ -73,6 +78,11 @@ const defaultSettings: Settings = {
   encUrlPreview: false,
   showHiddenEvents: false,
   legacyUsernameColor: false,
+
+  pushToTalk: false,
+  pushToTalkKey: 'Shift (L)',
+  pushToMute: false,
+  pushToMuteKey: 'Shift (L)',
 
   showNotifications: true,
   isNotificationSounds: true,

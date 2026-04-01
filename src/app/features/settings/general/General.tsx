@@ -45,7 +45,7 @@ import {
   useThemeNames,
   useThemes,
 } from '../../../hooks/useTheme';
-import { stopPropagation } from '../../../utils/keyboard';
+import { getPushKeyLabel, stopPropagation } from '../../../utils/keyboard';
 import { useMessageLayoutItems } from '../../../hooks/useMessageLayout';
 import { useMessageSpacingItems } from '../../../hooks/useMessageSpacing';
 import { useDateFormatItems } from '../../../hooks/useDateFormat';
@@ -978,6 +978,132 @@ function Messages() {
   );
 }
 
+function Voice() {
+  const [pushToTalk, setPushToTalk] = useSetting(settingsAtom, 'pushToTalk');
+  const [pushToTalkKey, setPushToTalkKey] = useSetting(settingsAtom, 'pushToTalkKey');
+  const [isAssigningPTT, setIsAssigningPTT] = useState(false);
+
+  const [pushToMute, setPushToMute] = useSetting(settingsAtom, 'pushToMute');
+  const [pushToMuteKey, setPushToMuteKey] = useSetting(settingsAtom, 'pushToMuteKey');
+  const [isAssigningPTM, setIsAssigningPTM] = useState(false);
+
+  const useKeyAssignment = (
+    assigning: boolean,
+    setKey: (k: string) => void,
+    setAssigning: (b: boolean) => void
+  ) => {
+    useEffect(() => {
+      if (!assigning) return;
+      const handler = (evt: KeyboardEvent) => {
+        evt.preventDefault();
+        evt.stopPropagation();
+
+        if (evt.code === 'Escape') return setAssigning(false);
+        if (!evt.code || evt.key === 'Unidentified' || evt.key === 'Dead') return;
+
+        setKey(evt.code);
+        setAssigning(false);
+      };
+      window.addEventListener('keydown', handler, true);
+      return () => window.removeEventListener('keydown', handler, true);
+    }, [assigning, setKey, setAssigning]);
+  };
+
+  useKeyAssignment(isAssigningPTT, setPushToTalkKey, setIsAssigningPTT);
+  useKeyAssignment(isAssigningPTM, setPushToMuteKey, setIsAssigningPTM);
+
+  return (
+    <Box direction="Column" gap="100">
+      <Text size="L400">Voice</Text>
+      <Text size="T200">Not working when clicking inside video call areas or embedded content.</Text>
+      <SequenceCard className={SequenceCardStyle} variant="SurfaceVariant" direction="Column">
+        <SettingTile
+          title="Push to Talk"
+          after={
+            <Switch
+              variant="Primary"
+              value={pushToTalk}
+              onChange={(value) => {
+                setPushToTalk(value);
+                if (!value) {
+                  setIsAssigningPTT(false);
+                }
+                setPushToMute(false);
+                setIsAssigningPTM(false);
+              }}
+            />
+          }
+        />
+      </SequenceCard>
+      {pushToTalk && (
+        <SequenceCard className={SequenceCardStyle} variant="SurfaceVariant" direction="Column">
+          <SettingTile
+            title="Push to Talk Keybind"
+            description={isAssigningPTT ? 'Press a key to assign it. Esc cancels.' : 'Click to reassign key.'}
+            after={
+              <Button
+                size="300"
+                variant={isAssigningPTT ? 'Primary' : 'Secondary'}
+                outlined
+                fill="Soft"
+                radii="300"
+                onClick={() => setIsAssigningPTT((value) => !value)}
+                aria-pressed={isAssigningPTT}
+              >
+                <Text size="T300">
+                  {isAssigningPTT ? 'Press a Key' : getPushKeyLabel(pushToTalkKey)}
+                </Text>
+              </Button>
+            }
+          />
+        </SequenceCard>
+      )}
+      <SequenceCard className={SequenceCardStyle} variant="SurfaceVariant" direction="Column">
+        <SettingTile
+          title="Push to Mute"
+          after={
+            <Switch
+              variant="Primary"
+              value={pushToMute}
+              onChange={(value) => {
+                setPushToMute(value);
+                if (!value) {
+                  setIsAssigningPTM(false);
+                }
+                setPushToTalk(false);
+                setIsAssigningPTT(false);
+              }}
+            />
+          }
+        />
+      </SequenceCard>
+      {pushToMute && (
+        <SequenceCard className={SequenceCardStyle} variant="SurfaceVariant" direction="Column">
+          <SettingTile
+            title="Push to Mute Keybind"
+            description={isAssigningPTM ? 'Press a key to assign it. Esc cancels.' : 'Click to reassign key.'}
+            after={
+              <Button
+                size="300"
+                variant={isAssigningPTM ? 'Primary' : 'Secondary'}
+                outlined
+                fill="Soft"
+                radii="300"
+                onClick={() => setIsAssigningPTM((value) => !value)}
+                aria-pressed={isAssigningPTM}
+              >
+                <Text size="T300">
+                  {isAssigningPTM ? 'Press a Key' : getPushKeyLabel(pushToMuteKey)}
+                </Text>
+              </Button>
+            }
+          />
+        </SequenceCard>
+      )}
+    </Box>
+  );
+}
+
 type GeneralProps = {
   requestClose: () => void;
 };
@@ -1006,6 +1132,7 @@ export function General({ requestClose }: GeneralProps) {
               <DateAndTime />
               <Editor />
               <Messages />
+              <Voice />
             </Box>
           </PageContent>
         </Scroll>

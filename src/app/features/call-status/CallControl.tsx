@@ -5,6 +5,10 @@ import { StatusDivider } from './components';
 import { CallEmbed, useCallControlState } from '../../plugins/call';
 import { AsyncStatus, useAsyncCallback } from '../../hooks/useAsyncCallback';
 import { callEmbedAtom } from '../../state/callEmbed';
+import { useSetting } from '../../state/hooks/settings';
+import { settingsAtom } from '../../state/settings';
+import { getPushKeyLabel } from '../../utils/keyboard';
+import { ScreenSize, useScreenSizeContext } from '../../hooks/useScreenSize';
 
 type MicrophoneButtonProps = {
   enabled: boolean;
@@ -157,6 +161,7 @@ export function CallControl({
 }) {
   const { microphone, video, sound, screenshare } = useCallControlState(callEmbed.control);
   const setCallEmbed = useSetAtom(callEmbedAtom);
+  const screenSize = useScreenSizeContext();
 
   const [hangupState, hangup] = useAsyncCallback(
     useCallback(() => callEmbed.hangup(), [callEmbed])
@@ -171,10 +176,24 @@ export function CallControl({
     }
     hangup();
   };
+  const [pushToTalk] = useSetting(settingsAtom, 'pushToTalk');
+  const [pushToMute] = useSetting(settingsAtom, 'pushToMute');
+  const [pushToTalkKey] = useSetting(settingsAtom, 'pushToTalkKey');
+  const [pushToMuteKey] = useSetting(settingsAtom, 'pushToMuteKey');
 
   return (
     <Box shrink="No" alignItems="Center" gap="300">
       <Box alignItems="Inherit" gap="200">
+        {screenSize !== ScreenSize.Mobile && pushToTalk && <>
+          <Text size="T200">Push to Talk: {getPushKeyLabel(pushToTalkKey)}</Text>
+          {!compact && <StatusDivider />}
+        </>
+        } 
+        {screenSize !== ScreenSize.Mobile && pushToMute && <>
+          <Text size="T200">Push to Mute: {getPushKeyLabel(pushToMuteKey)}</Text>
+          {!compact && <StatusDivider />}
+        </>
+        }
         <MicrophoneButton
           enabled={microphone}
           onToggle={() => callEmbed.control.toggleMicrophone()}

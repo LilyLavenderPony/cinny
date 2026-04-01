@@ -16,6 +16,16 @@ export class CallControl extends EventEmitter implements CallControlState {
 
   private controlMutationObserver: MutationObserver;
 
+  private pushToTalkKeyPressed = false;
+
+  private pushToTalk = false;
+
+  private pushToMuteKeyPressed = false;
+
+  private pushToMute = false;
+
+  private lastSentMediaState?: ElementMediaStatePayload;
+
   private get document(): Document | undefined {
     return this.iframe.contentDocument ?? this.iframe.contentWindow?.document;
   }
@@ -92,9 +102,53 @@ export class CallControl extends EventEmitter implements CallControlState {
     return this.state.spotlight;
   }
 
+  private get effectiveAudioEnabled(): boolean {
+    if (this.pushToTalk) {
+      return this.microphone && (!this.pushToTalk || this.pushToTalkKeyPressed);
+    } else if (this.pushToMute) {
+      return this.microphone && (!this.pushToMute || !this.pushToMuteKeyPressed);
+    }
+    return this.microphone;
+  }
+
+  public setPushToTalkKeyPressed(enabled: boolean) {
+    this.pushToTalkKeyPressed = enabled;
+    if (this.pushToTalk) {
+      this.setMediaState({
+        audio_enabled: this.effectiveAudioEnabled,
+        video_enabled: this.video,
+      });
+    }
+  }
+
+  public setPushToTalk(enabled: boolean) {
+    this.pushToTalk = enabled;
+    this.setMediaState({
+      audio_enabled: this.effectiveAudioEnabled,
+      video_enabled: this.video,
+    });
+  }
+
+  public setPushToMuteKeyPressed(enabled: boolean) {
+    this.pushToMuteKeyPressed = enabled;
+    if (this.pushToMute) {
+      this.setMediaState({
+        audio_enabled: this.effectiveAudioEnabled,
+        video_enabled: this.video,
+      });
+    }
+  }
+  public setPushToMute(enabled: boolean) {
+    this.pushToMute = enabled;
+    this.setMediaState({
+      audio_enabled: this.effectiveAudioEnabled,
+      video_enabled: this.video,
+    });
+  }
+
   public async applyState() {
     await this.setMediaState({
-      audio_enabled: this.microphone,
+      audio_enabled: this.effectiveAudioEnabled,
       video_enabled: this.video,
     });
     this.setSound(this.sound);
@@ -126,7 +180,21 @@ export class CallControl extends EventEmitter implements CallControlState {
   }
 
   private setMediaState(state: ElementMediaStatePayload) {
-    return this.call.transport.send(ElementWidgetActions.DeviceMute, state);
+    const isDuplicate =
+      this.lastSentMediaState?.audio_enabled === state.audio_enabled &&
+      this.lastSentMediaState?.video_enabled === state.video_enabled;
+
+    if (isDuplicate) return Promise.resolve();
+
+    return this.call.transport
+      .send(ElementWidgetActions.DeviceMute, state)
+      .then(() => {
+        this.lastSentMediaState = {
+          audio_enabled: state.audio_enabled,
+          video_enabled: state.video_enabled,
+        };
+      })
+      .catch(() => undefined);
   }
 
   private setSound(sound: boolean): void {
@@ -144,7 +212,7 @@ export class CallControl extends EventEmitter implements CallControlState {
     if (!data) return;
 
     const state = new CallControlState(
-      data.audio_enabled ?? this.microphone,
+      (this.pushToTalk || this.pushToMute) ? this.microphone : (data.audio_enabled ?? this.microphone),
       data.video_enabled ?? this.video,
       this.sound,
       this.screenshare,
@@ -153,6 +221,20 @@ export class CallControl extends EventEmitter implements CallControlState {
 
     this.state = state;
     this.emitStateUpdate();
+
+    if (this.pushToTalk || this.pushToMute) {
+      const desiredAudioEnabled = this.effectiveAudioEnabled;
+      const currentAudioEnabled = data.audio_enabled ?? this.microphone;
+      const currentVideoEnabled = data.video_enabled ?? this.video;
+
+      // Avoid echo-loop resend when the widget already reflects the desired state.
+      if (currentAudioEnabled !== desiredAudioEnabled || currentVideoEnabled !== this.video) {
+        this.setMediaState({
+          audio_enabled: desiredAudioEnabled,
+          video_enabled: this.video,
+        });
+      }
+    }
 
     if (this.microphone && !this.sound) {
       this.toggleSound();
@@ -174,16 +256,25 @@ export class CallControl extends EventEmitter implements CallControlState {
   }
 
   public toggleMicrophone() {
-    const payload: ElementMediaStatePayload = {
-      audio_enabled: !this.microphone,
+    this.state = new CallControlState(
+      !this.microphone,
+      this.video,
+      this.sound,
+      this.screenshare,
+      this.spotlight
+    );
+
+    this.emitStateUpdate();
+
+    return this.setMediaState({
+      audio_enabled: this.effectiveAudioEnabled,
       video_enabled: this.video,
-    };
-    return this.setMediaState(payload);
+    });
   }
 
   public toggleVideo() {
     const payload: ElementMediaStatePayload = {
-      audio_enabled: this.microphone,
+      audio_enabled: this.effectiveAudioEnabled,
       video_enabled: !this.video,
     };
     return this.setMediaState(payload);
